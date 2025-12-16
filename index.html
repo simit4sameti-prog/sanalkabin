@@ -23,6 +23,28 @@
         body {
             font-family: 'Fredoka', sans-serif;
             background: linear-gradient(180deg, #60A5FA 0%, #E0F2FE 100%); /* Sky gradient */
+            overflow-x: hidden; 
+            overflow-y: auto; /* Ensure vertical scroll works */
+        }
+
+        /* BALLOONS BACKGROUND ANIMATION */
+        .balloon-container {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: -1; overflow: hidden;
+        }
+        .balloon {
+            position: absolute; bottom: -50px; width: 30px; height: 40px;
+            background: rgba(255,255,255,0.6); border-radius: 50%;
+            animation: rise 15s linear infinite; opacity: 0;
+        }
+        .balloon::after {
+            content: ''; position: absolute; bottom: -8px; left: 50%; transform: translateX(-50%);
+            width: 1px; height: 8px; background: rgba(0,0,0,0.3);
+        }
+        @keyframes rise {
+            0% { transform: translateY(0) rotate(0deg); opacity: 0; }
+            10% { opacity: 0.8; }
+            100% { transform: translateY(-110vh) rotate(360deg); opacity: 0; }
         }
 
         /* Floating Animation for the Character */
@@ -36,12 +58,24 @@
             100% { transform: translateY(0px); }
         }
 
+        /* Hint Animation (Pulse) */
+        @keyframes hintPulse {
+            0% { box-shadow: 0 0 0 0 rgba(255, 215, 0, 0.7); transform: scale(1); }
+            70% { box-shadow: 0 0 0 15px rgba(255, 215, 0, 0); transform: scale(1.1); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 215, 0, 0); transform: scale(1); }
+        }
+        .hint-active {
+            animation: hintPulse 1.5s infinite;
+            border-color: #FFD700 !important;
+            z-index: 50 !important;
+        }
+
         /* Custom Styles for the Character */
         .body-part {
             position: absolute;
             transition: all 0.2s ease;
             cursor: pointer;
-            border: 3px solid #333; /* Thicker borders for cartoon look */
+            border: 3px solid #333; 
             box-shadow: 2px 2px 0px rgba(0,0,0,0.2);
         }
 
@@ -80,25 +114,34 @@
             margin: 0 auto;
         }
 
-        /* Head Area */
-        .hair {
-            top: 20px; left: 75px; width: 150px; height: 60px;
-            background: var(--hair-color); border-radius: 50px 50px 0 0;
-            z-index: 5;
+        /* REWARDS */
+        .hat {
+            position: absolute; top: -15px; left: 80px; width: 140px; height: 60px;
+            background: #FF5252; border-radius: 60px 60px 0 0; z-index: 10;
+            display: none; border: 3px solid #333;
+            animation: dropIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
-        
-        .head-shape {
-            position: absolute;
-            top: 50px; left: 85px; width: 130px; height: 140px;
-            background: var(--skin-color); border-radius: 40px;
-            z-index: 1; 
-            border: 3px solid #333;
+        .hat-visor {
+            position: absolute; bottom: 0; right: -20px; width: 60px; height: 12px;
+            background: #333; border-radius: 0 10px 10px 0;
+        }
+        .hat-pom {
+            position: absolute; top: -15px; left: 55px; width: 30px; height: 30px;
+            background: #FFF; border-radius: 50%; border: 3px solid #333;
         }
 
-        .ear {
-            top: 100px; width: 30px; height: 40px;
-            background: var(--skin-color); z-index: 3;
+        .cape {
+            position: absolute; top: 190px; left: 60px; width: 180px; height: 220px;
+            background: #9C27B0; z-index: 0; border-radius: 20px 20px 80px 80px;
+            display: none; border: 3px solid #4A148C; transform-origin: top center;
+            animation: flap 1s ease-in-out infinite alternate;
         }
+        @keyframes flap { from { transform: rotate(-3deg) scale(0.95); } to { transform: rotate(3deg) scale(1.05); } }
+
+        /* Head Area */
+        .hair { top: 20px; left: 75px; width: 150px; height: 60px; background: var(--hair-color); border-radius: 50px 50px 0 0; z-index: 5; }
+        .head-shape { position: absolute; top: 50px; left: 85px; width: 130px; height: 140px; background: var(--skin-color); border-radius: 40px; z-index: 1; border: 3px solid #333; }
+        .ear { top: 100px; width: 30px; height: 40px; background: var(--skin-color); z-index: 3; }
         .ear.left { left: 65px; border-radius: 20px 0 0 20px; }
         .ear.right { left: 205px; border-radius: 0 20px 20px 0; }
 
@@ -107,175 +150,103 @@
             background: #fff; border-radius: 50%;
             z-index: 6; overflow: hidden;
             border: 2px solid #333;
+            position: absolute;
         }
-        .eye::after {
-            content: ''; position: absolute; top: 4px; left: 4px;
+        /* Pupil for Eye Tracking */
+        .pupil {
+            position: absolute; top: 50%; left: 50%;
             width: 8px; height: 8px; background: #000; border-radius: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
         }
         .eye.left { left: 110px; }
         .eye.right { left: 170px; }
 
-        .nose {
-            top: 120px; left: 140px; width: 20px; height: 25px;
-            background: #EAB19D; border-radius: 10px;
-            z-index: 6;
-            opacity: 0.8; /* Slight transparency to blend with skin changes */
-        }
+        .nose { top: 120px; left: 140px; width: 20px; height: 25px; background: #EAB19D; border-radius: 10px; z-index: 6; opacity: 0.8; }
+        .mouth { top: 155px; left: 130px; width: 40px; height: 20px; background: #D84315; border-radius: 0 0 20px 20px; z-index: 6; transition: height 0.2s; }
+        .mouth.happy { height: 30px; background: #D84315; border-bottom: 3px solid #333; }
 
-        .mouth {
-            top: 155px; left: 130px; width: 40px; height: 20px;
-            background: #D84315; border-radius: 0 0 20px 20px;
-            z-index: 6;
-            transition: height 0.2s;
-        }
-        
-        /* Happy mouth class */
-        .mouth.happy {
-            height: 30px;
-            background: #D84315;
-            border-bottom: 3px solid #333;
-        }
-
-        /* SUNGLASSES (Hidden Reward) */
         .sunglasses {
-            position: absolute;
-            top: 85px; left: 100px; width: 100px; height: 30px;
-            z-index: 15;
-            display: none; /* Hidden initially */
-            pointer-events: none;
-            animation: dropIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            position: absolute; top: 85px; left: 100px; width: 100px; height: 30px; z-index: 15;
+            display: none; pointer-events: none; animation: dropIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
-        .lens {
-            position: absolute; width: 40px; height: 25px;
-            background: #111; border-radius: 5px 5px 20px 20px; border: 2px solid #fff;
-        }
-        .lens.left { left: 0; }
-        .lens.right { right: 0; }
-        .bridge {
-            position: absolute; top: 10px; left: 40px; width: 20px; height: 5px; background: #111;
-        }
+        .lens { position: absolute; width: 40px; height: 25px; background: #111; border-radius: 5px 5px 20px 20px; border: 2px solid #fff; }
+        .lens.left { left: 0; } .lens.right { right: 0; }
+        .bridge { position: absolute; top: 10px; left: 40px; width: 20px; height: 5px; background: #111; }
 
-        @keyframes dropIn {
-            0% { transform: translateY(-200px) rotate(-20deg); opacity: 0; }
-            100% { transform: translateY(0) rotate(0deg); opacity: 1; }
-        }
+        @keyframes dropIn { 0% { transform: translateY(-200px) rotate(-20deg); opacity: 0; } 100% { transform: translateY(0) rotate(0deg); opacity: 1; } }
 
         /* Body Area */
-        .torso {
-            top: 185px; left: 90px; width: 120px; height: 155px;
-            background: var(--shirt-color); border-radius: 20px;
-            z-index: 4;
-            display: flex; align-items: center; justify-content: center;
-            color: rgba(255,255,255,0.8); 
-            font-size: 2rem;
-        }
+        .torso { top: 185px; left: 90px; width: 120px; height: 155px; background: var(--shirt-color); border-radius: 20px; z-index: 4; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.8); font-size: 2rem; }
+        .chest-star { font-size: 40px; color: #FCD34D; display: none; filter: drop-shadow(0 0 5px orange); animation: popIn 0.3s; }
 
-        /* Star on chest for reward */
-        .chest-star {
-            font-size: 40px; color: #FCD34D; display: none;
-            filter: drop-shadow(0 0 5px orange);
-            animation: popIn 0.3s;
-        }
+        .arm { top: 210px; width: 40px; height: 100px; background: var(--shirt-color); border-radius: 20px; z-index: 3; }
+        .arm.left { left: 55px; transform: rotate(10deg); } .arm.right { left: 205px; transform: rotate(-10deg); }
 
-        .arm {
-            top: 210px; width: 40px; height: 100px;
-            background: var(--shirt-color); border-radius: 20px; /* Arms match shirt usually, or skin? Let's say sleeves match shirt */
-            z-index: 3;
-        }
-        .arm.left { left: 55px; transform: rotate(10deg); }
-        .arm.right { left: 205px; transform: rotate(-10deg); }
+        .hand { top: 300px; width: 40px; height: 40px; background: var(--skin-color); border-radius: 50%; z-index: 3; }
+        .hand.left { left: 50px; } .hand.right { left: 210px; }
 
-        .hand {
-            top: 300px; width: 40px; height: 40px;
-            background: var(--skin-color); border-radius: 50%;
-            z-index: 3;
-        }
-        .hand.left { left: 50px; }
-        .hand.right { left: 210px; }
+        .leg { top: 330px; width: 45px; height: 110px; background: var(--pants-color); border-radius: 10px; z-index: 2; }
+        .leg.left { left: 95px; } .leg.right { left: 160px; }
 
-        .leg {
-            top: 330px; width: 45px; height: 110px;
-            background: var(--pants-color); border-radius: 10px;
-            z-index: 2;
-        }
-        .leg.left { left: 95px; }
-        .leg.right { left: 160px; }
-
-        .foot {
-            top: 430px; width: 60px; height: 30px;
-            background: var(--shoe-color); border-radius: 20px 20px 5px 5px;
-            z-index: 1;
-        }
-        .foot.left { left: 85px; }
-        .foot.right { left: 155px; }
+        .foot { top: 430px; width: 60px; height: 30px; background: var(--shoe-color); border-radius: 20px 20px 5px 5px; z-index: 1; }
+        .foot.left { left: 85px; } .foot.right { left: 155px; }
 
         /* Star Container */
-        .star-container {
-            display: flex;
-            gap: 5px;
-            min-height: 40px;
-            justify-content: center;
-        }
-        .star-icon {
-            font-size: 30px;
-            animation: popIn 0.4s ease-out;
-        }
-        @keyframes popIn {
-            0% { transform: scale(0); opacity: 0; }
-            80% { transform: scale(1.3); }
-            100% { transform: scale(1); opacity: 1; }
-        }
+        .star-container { display: flex; gap: 5px; min-height: 40px; justify-content: center; }
+        .star-icon { font-size: 30px; animation: popIn 0.4s ease-out; }
+        @keyframes popIn { 0% { transform: scale(0); opacity: 0; } 80% { transform: scale(1.3); } 100% { transform: scale(1); opacity: 1; } }
 
         /* Color Picker Inputs */
-        .color-control {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 10px;
+        .color-control { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+        .color-control label { font-weight: bold; color: #333; width: 100px; text-align: right; }
+        input[type="color"] { border: none; width: 40px; height: 40px; cursor: pointer; background: none; }
+
+        /* CERTIFICATE MODAL */
+        #certificate-modal {
+            display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); 
+            z-index: 100; align-items: center; justify-content: center; backdrop-filter: blur(5px);
         }
-        .color-control label {
-            font-weight: bold;
-            color: #333;
-            width: 100px;
-            text-align: right;
+        .cert-paper {
+            background: #fff; padding: 2rem; border-radius: 20px; border: 8px solid #FCD34D;
+            text-align: center; max-width: 90%; width: 400px; position: relative;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+            animation: popIn 0.5s ease;
         }
-        input[type="color"] {
-            border: none;
-            width: 40px;
-            height: 40px;
-            cursor: pointer;
-            background: none;
+        .cert-ribbon {
+            position: absolute; top: -20px; left: 50%; transform: translateX(-50%);
+            background: #EF4444; color: white; padding: 5px 20px; font-weight: bold;
+            border-radius: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.2);
         }
 
     </style>
 </head>
 <body class="min-h-screen flex flex-col items-center justify-center p-4">
 
+    <!-- Balloon Background -->
+    <div class="balloon-container" id="balloon-container"></div>
+
     <!-- Header & Scoreboard -->
     <div class="w-full max-w-3xl bg-white/90 backdrop-blur-sm rounded-3xl shadow-2xl p-6 mb-6 border-4 border-white relative">
         
-        <!-- Top Row: Title + Stats -->
+        <!-- Top Row -->
         <div class="flex flex-col md:flex-row justify-between items-center mb-4 gap-4">
-            <!-- Title -->
             <div class="text-center md:text-left">
                 <h1 class="text-5xl font-extrabold text-blue-600 tracking-tight drop-shadow-md">Samet's Class</h1>
                 <p class="text-blue-400 text-sm font-bold">Body Parts Game</p>
+                <!-- High Score Display -->
+                <p class="text-yellow-600 text-xs font-bold mt-1">Best Score: <span id="high-score">0</span></p>
             </div>
             
             <div id="stats-panel" class="flex items-center gap-3 flex-wrap justify-center">
-                <!-- Score Box -->
                 <div class="bg-yellow-300 border-b-4 border-yellow-500 px-4 py-2 rounded-2xl text-center min-w-[90px] shadow-sm">
                     <span class="block text-xs text-yellow-800 font-bold uppercase tracking-widest">Score</span>
                     <span id="score" class="text-3xl font-extrabold text-yellow-900">0</span>
                 </div>
-                
-                <!-- Timer Box -->
                 <div class="bg-red-300 border-b-4 border-red-500 px-4 py-2 rounded-2xl text-center min-w-[90px] shadow-sm">
                     <span class="block text-xs text-red-800 font-bold uppercase tracking-widest">Time</span>
                     <span id="timer" class="text-3xl font-extrabold text-red-900">60</span>
                 </div>
-
-                <!-- Volume -->
                 <div class="bg-blue-100 p-3 rounded-full shadow-sm cursor-pointer hover:bg-blue-200 transition" onclick="playCorrectSound()" title="Test Sound">
                     <span class="text-2xl">🔊</span>
                 </div>
@@ -290,17 +261,13 @@
              </div>
         </div>
 
-        <!-- Mobile Player Badge -->
         <div class="md:hidden bg-indigo-500 text-white p-2 rounded-xl text-center mb-4 shadow-md mx-auto max-w-[200px]" id="mobile-player-badge">
             <span class="text-xs font-bold uppercase opacity-75">Player: </span>
             <span id="player-name-mobile" class="font-bold">???</span>
         </div>
 
-
         <!-- Star Progress Bar -->
-        <div class="star-container mb-4" id="star-area">
-            <!-- Stars will appear here -->
-        </div>
+        <div class="star-container mb-4" id="star-area"></div>
 
         <!-- Feedback & Instruction Area -->
         <div id="message-area" class="bg-blue-500 text-white p-4 rounded-2xl text-center min-h-[90px] flex flex-col justify-center items-center transition-all duration-300 border-4 border-blue-400 shadow-lg transform">
@@ -308,7 +275,7 @@
             <p id="sub-instruction" class="text-blue-100 text-lg font-medium">Click Play to pick a student!</p>
         </div>
 
-        <!-- Creator Panel (Hidden by default) -->
+        <!-- Creator Panel -->
         <div id="creator-panel" class="hidden bg-orange-100 p-4 rounded-2xl border-4 border-orange-300 mt-4 text-center">
             <h3 class="text-2xl font-bold text-orange-600 mb-4">Design Your Character! 🎨</h3>
             <div class="flex flex-wrap justify-center gap-4">
@@ -337,16 +304,13 @@
         <!-- Controls -->
         <div class="flex flex-wrap justify-center gap-4 mt-6" id="controls">
             <button onclick="setMode('learn')" class="group relative px-6 py-3 bg-purple-400 hover:bg-purple-500 text-white rounded-2xl font-bold text-xl transition shadow-lg border-b-8 border-purple-700 active:border-b-0 active:translate-y-2">
-                <span class="text-2xl block mb-1">👀</span>
-                Study
+                <span class="text-2xl block mb-1">👀</span> Study
             </button>
             <button onclick="setMode('create')" class="group relative px-6 py-3 bg-orange-400 hover:bg-orange-500 text-white rounded-2xl font-bold text-xl transition shadow-lg border-b-8 border-orange-700 active:border-b-0 active:translate-y-2">
-                <span class="text-2xl block mb-1">🎨</span>
-                Create
+                <span class="text-2xl block mb-1">🎨</span> Create
             </button>
             <button onclick="startGame()" class="group relative px-6 py-3 bg-green-400 hover:bg-green-500 text-white rounded-2xl font-bold text-xl transition shadow-lg border-b-8 border-green-700 active:border-b-0 active:translate-y-2">
-                <span class="text-2xl block mb-1">🎮</span>
-                Play
+                <span class="text-2xl block mb-1">🎮</span> Play
             </button>
         </div>
     </div>
@@ -354,45 +318,83 @@
     <!-- The Character -->
     <div class="relative bg-white/40 p-8 rounded-[3rem] shadow-xl backdrop-blur-md border-4 border-white/60">
         <div id="character-container" class="float-anim">
-            <!-- Non-interactive base head shape -->
+            
+            <div class="cape" id="cape"></div>
             <div class="head-shape"></div>
+            <div class="hat" id="hat"><div class="hat-pom"></div><div class="hat-visor"></div></div>
+            <div class="sunglasses" id="sunglasses"><div class="lens left"></div><div class="bridge"></div><div class="lens right"></div></div>
 
-            <!-- Sunglasses Reward -->
-            <div class="sunglasses" id="sunglasses">
-                <div class="lens left"></div>
-                <div class="bridge"></div>
-                <div class="lens right"></div>
-            </div>
-
-            <!-- Interactive Parts -->
+            <!-- Body Parts -->
             <div class="body-part hair" data-part="hair" title="Hair"></div>
             <div class="body-part ear left" data-part="ear" title="Ear"></div>
             <div class="body-part ear right" data-part="ear" title="Ear"></div>
             
-            <div class="body-part eye left" data-part="eye" title="Eye"></div>
-            <div class="body-part eye right" data-part="eye" title="Eye"></div>
-            <div class="body-part nose" data-part="nose" title="Nose"></div>
-            <div class="body-part mouth" id="mouth" data-part="mouth" title="Mouth"></div>
-            
-            <div class="body-part torso" data-part="body" title="Body/Torso">
-                <div class="chest-star">⭐</div>
+            <div class="body-part eye left" data-part="eye" title="Eye">
+                <div class="pupil"></div>
+            </div>
+            <div class="body-part eye right" data-part="eye" title="Eye">
+                <div class="pupil"></div>
             </div>
             
+            <div class="body-part nose" data-part="nose" title="Nose"></div>
+            <div class="body-part mouth" id="mouth" data-part="mouth" title="Mouth"></div>
+            <div class="body-part torso" data-part="body" title="Body/Torso"><div class="chest-star">⭐</div></div>
             <div class="body-part arm left" data-part="arm" title="Arm"></div>
             <div class="body-part arm right" data-part="arm" title="Arm"></div>
-            
             <div class="body-part hand left" data-part="hand" title="Hand"></div>
             <div class="body-part hand right" data-part="hand" title="Hand"></div>
-            
             <div class="body-part leg left" data-part="leg" title="Leg"></div>
             <div class="body-part leg right" data-part="leg" title="Leg"></div>
-            
             <div class="body-part foot left" data-part="foot" title="Foot"></div>
             <div class="body-part foot right" data-part="foot" title="Foot"></div>
         </div>
     </div>
 
+    <!-- Certificate Modal -->
+    <div id="certificate-modal">
+        <div class="cert-paper">
+            <div class="cert-ribbon">Certificate of Success</div>
+            <h2 class="text-3xl font-extrabold text-blue-600 mt-6 mb-2">Tebrikler! 🎉</h2>
+            <p class="text-xl font-bold text-gray-700" id="cert-name">Öğrenci Adı</p>
+            <div class="my-4 text-6xl">⭐</div>
+            <p class="text-lg text-gray-600">Toplanan Puan:</p>
+            <p class="text-4xl font-extrabold text-yellow-500 mb-6" id="cert-score">0</p>
+            <button onclick="closeCertificate()" class="px-6 py-2 bg-green-500 text-white rounded-lg font-bold shadow hover:bg-green-600">
+                Tekrar Oyna / Replay
+            </button>
+        </div>
+    </div>
+
     <script>
+        // --- Balloons Logic ---
+        function createBalloons() {
+            const container = document.getElementById('balloon-container');
+            const colors = ['#FF69B4', '#FFD700', '#87CEEB', '#98FB98', '#FFA07A'];
+            
+            // Create 15 balloons
+            for(let i=0; i<15; i++) {
+                const balloon = document.createElement('div');
+                balloon.className = 'balloon';
+                balloon.style.left = Math.random() * 100 + '%';
+                balloon.style.background = colors[Math.floor(Math.random() * colors.length)];
+                balloon.style.animationDuration = (Math.random() * 10 + 10) + 's';
+                balloon.style.animationDelay = (Math.random() * 10) + 's';
+                container.appendChild(balloon);
+            }
+        }
+        createBalloons();
+
+        // --- High Score Logic ---
+        function updateHighScore(score) {
+            let currentHigh = localStorage.getItem('sametClassHighScore') || 0;
+            if(score > currentHigh) {
+                localStorage.setItem('sametClassHighScore', score);
+                document.getElementById('high-score').innerText = score;
+            }
+        }
+        document.getElementById('high-score').innerText = localStorage.getItem('sametClassHighScore') || 0;
+
+
         // --- Student List ---
         const students = [
             "Gamze Yüksel", "Zarife Üçay", "Ece Uz", "Elif Nur Güleç", 
@@ -409,23 +411,14 @@
         let audioCtx;
 
         function initAudio() {
-            if (!audioCtx) {
-                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            }
-            if (audioCtx.state === 'suspended') {
-                audioCtx.resume();
-            }
+            if (!audioCtx) { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+            if (audioCtx.state === 'suspended') { audioCtx.resume(); }
         }
 
-        // Modified speak function to accept language, defaulting to Turkish
         function speak(text, lang = 'tr-TR') {
-            if (synth.speaking) {
-                synth.cancel();
-            }
+            if (synth.speaking) { synth.cancel(); }
             const utterThis = new SpeechSynthesisUtterance(text);
-            utterThis.lang = lang; 
-            utterThis.pitch = 1.2; 
-            utterThis.rate = 0.9; 
+            utterThis.lang = lang; utterThis.pitch = 1.2; utterThis.rate = 0.9; 
             synth.speak(utterThis);
         }
 
@@ -433,46 +426,26 @@
             initAudio();
             const osc = audioCtx.createOscillator();
             const gainNode = audioCtx.createGain();
-            osc.type = type;
-            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            osc.type = type; osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
             gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
             gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
-            osc.connect(gainNode);
-            gainNode.connect(audioCtx.destination);
-            osc.start();
-            osc.stop(audioCtx.currentTime + duration);
+            osc.connect(gainNode); gainNode.connect(audioCtx.destination);
+            osc.start(); osc.stop(audioCtx.currentTime + duration);
         }
 
-        function playCorrectSound() {
-            playTone(600, 'sine', 0.1); 
-            setTimeout(() => playTone(800, 'sine', 0.3), 100); 
-        }
-
-        function playWrongSound() {
-            playTone(150, 'sawtooth', 0.3);
-            setTimeout(() => playTone(100, 'sawtooth', 0.3), 150);
-        }
-
-        function playWinSound() {
-            playTone(500, 'square', 0.1);
-            setTimeout(() => playTone(600, 'square', 0.1), 100);
-            setTimeout(() => playTone(700, 'square', 0.1), 200);
-            setTimeout(() => playTone(1000, 'sine', 0.4), 300);
-        }
+        function playCorrectSound() { playTone(600, 'sine', 0.1); setTimeout(() => playTone(800, 'sine', 0.3), 100); }
+        function playWrongSound() { playTone(150, 'sawtooth', 0.3); setTimeout(() => playTone(100, 'sawtooth', 0.3), 150); }
+        function playWinSound() { playTone(500, 'square', 0.1); setTimeout(() => playTone(600, 'square', 0.1), 100); setTimeout(() => playTone(700, 'square', 0.1), 200); setTimeout(() => playTone(1000, 'sine', 0.4), 300); }
 
         // --- Game Logic ---
-        
         let gameState = {
-            mode: 'idle', 
-            score: 0,
-            starCount: 0,
-            targetPart: null,
+            mode: 'idle', score: 0, starCount: 0, targetPart: null,
             partsList: ['hair', 'ear', 'eye', 'nose', 'mouth', 'arm', 'hand', 'leg', 'foot', 'body'],
-            sunglassesUnlocked: false,
-            timer: 60,
-            timerInterval: null
+            rewardsUnlocked: { hat: false, sunglasses: false, cape: false },
+            timer: 60, timerInterval: null, hintTimeout: null, currentPlayer: "???"
         };
 
+        // Elements
         const messageArea = document.getElementById('message-area');
         const mainInstruction = document.getElementById('main-instruction');
         const subInstruction = document.getElementById('sub-instruction');
@@ -481,12 +454,32 @@
         const bodyParts = document.querySelectorAll('.body-part');
         const starArea = document.getElementById('star-area');
         const sunglassesEl = document.getElementById('sunglasses');
+        const hatEl = document.getElementById('hat');
+        const capeEl = document.getElementById('cape');
         const chestStarEl = document.querySelector('.chest-star');
         const playerNameDesktop = document.getElementById('player-name-desktop');
         const playerNameMobile = document.getElementById('player-name-mobile');
         const creatorPanel = document.getElementById('creator-panel');
         const controls = document.getElementById('controls');
         const statsPanel = document.getElementById('stats-panel');
+        const certModal = document.getElementById('certificate-modal');
+        const certName = document.getElementById('cert-name');
+        const certScore = document.getElementById('cert-score');
+
+        // Eye Tracking Logic
+        document.addEventListener('mousemove', (e) => {
+            const eyes = document.querySelectorAll('.eye');
+            eyes.forEach(eye => {
+                const rect = eye.getBoundingClientRect();
+                const eyeCenterX = rect.left + rect.width / 2;
+                const eyeCenterY = rect.top + rect.height / 2;
+                const angle = Math.atan2(e.clientY - eyeCenterY, e.clientX - eyeCenterX);
+                const distance = Math.min(3, Math.hypot(e.clientX - eyeCenterX, e.clientY - eyeCenterY) / 10); // Limit movement
+                
+                const pupil = eye.querySelector('.pupil');
+                pupil.style.transform = `translate(-50%, -50%) translate(${Math.cos(angle) * distance}px, ${Math.sin(angle) * distance}px)`;
+            });
+        });
 
         // Initial setup
         bodyParts.forEach(part => {
@@ -495,28 +488,23 @@
             part.addEventListener('mouseleave', () => clearHover());
         });
 
-        // Function to update character CSS variables
-        function updateCharacterColor(variable, color) {
-            document.documentElement.style.setProperty(variable, color);
-        }
+        function updateCharacterColor(variable, color) { document.documentElement.style.setProperty(variable, color); }
 
         function setMode(mode) {
             initAudio();
             gameState.mode = mode;
             clearInterval(gameState.timerInterval);
+            clearTimeout(gameState.hintTimeout);
+            removeHints();
             
-            // UI Reset
             bodyParts.forEach(p => p.classList.remove('correct', 'wrong'));
             messageArea.className = "bg-blue-500 text-white p-4 rounded-2xl text-center min-h-[90px] flex flex-col justify-center items-center transition-all duration-300 border-4 border-blue-400 shadow-lg";
             
-            // Toggle Visibility based on mode
             if (mode === 'create') {
                 creatorPanel.classList.remove('hidden');
                 messageArea.classList.add('hidden');
                 statsPanel.classList.add('hidden');
-                controls.classList.add('hidden'); // Hide buttons while creating
-                
-                // Show simple feedback in character creation
+                controls.classList.add('hidden');
                 mainInstruction.innerText = "Design Time! 🎨";
                 subInstruction.innerText = "Pick colors below";
             } else {
@@ -526,24 +514,19 @@
                 controls.classList.remove('hidden');
             }
 
-            // Reset Player Name if not playing
-            if (mode !== 'playing') {
-                updatePlayerName("???");
-            }
+            if (mode !== 'playing') { updatePlayerName("???"); }
 
             if(mode === 'playing') {
-               gameState.sunglassesUnlocked = false;
-               sunglassesEl.style.display = 'none';
-               chestStarEl.style.display = 'none';
-               starArea.innerHTML = '';
+               gameState.rewardsUnlocked = { hat: false, sunglasses: false, cape: false };
+               sunglassesEl.style.display = 'none'; hatEl.style.display = 'none'; capeEl.style.display = 'none';
+               chestStarEl.style.display = 'none'; starArea.innerHTML = '';
             }
 
             if (mode === 'learn') {
                 mainInstruction.innerText = "Hover & Learn!";
                 subInstruction.innerText = "Point to see names";
-                scoreEl.innerText = "-";
-                timerEl.innerText = "-";
-                speak("Çalışma Modu"); // TR
+                scoreEl.innerText = "-"; timerEl.innerText = "-";
+                // Removed spoken feedback for mode switch
             }
 
             if (mode === 'idle') {
@@ -554,59 +537,56 @@
         }
 
         function updatePlayerName(name) {
+            gameState.currentPlayer = name;
             playerNameDesktop.innerText = name;
             playerNameMobile.innerText = name;
         }
 
         function startGame() {
-            setMode('playing'); // Ensure mode is set first
-            gameState.score = 0;
-            gameState.starCount = 0;
-            gameState.timer = 60; // 60 Seconds
-            scoreEl.innerText = "0";
-            timerEl.innerText = "60";
-            starArea.innerHTML = ''; 
+            setMode('playing');
+            gameState.score = 0; gameState.starCount = 0; gameState.timer = 60;
+            scoreEl.innerText = "0"; timerEl.innerText = "60"; starArea.innerHTML = ''; 
 
-            // Pick Random Student
             const randomStudent = students[Math.floor(Math.random() * students.length)];
             updatePlayerName(randomStudent);
-
-            // Updated: Only say the name, in Turkish voice
+            
+            // Only speak the name, nothing else
             speak(randomStudent);
             
-            // Start Timer
             clearInterval(gameState.timerInterval);
             gameState.timerInterval = setInterval(() => {
                 gameState.timer--;
                 timerEl.innerText = gameState.timer;
-                
-                if (gameState.timer <= 10) {
-                     timerEl.classList.add('text-red-600', 'animate-pulse');
-                } else {
-                     timerEl.classList.remove('text-red-600', 'animate-pulse');
-                }
-
-                if (gameState.timer <= 0) {
-                    endGame();
-                }
+                if (gameState.timer <= 10) { timerEl.classList.add('text-red-600', 'animate-pulse'); }
+                else { timerEl.classList.remove('text-red-600', 'animate-pulse'); }
+                if (gameState.timer <= 0) { endGame(); }
             }, 1000);
 
-            setTimeout(() => {
-                 nextQuestion();
-            }, 1000);
+            setTimeout(() => { nextQuestion(); }, 1000);
         }
 
         function endGame() {
             clearInterval(gameState.timerInterval);
             gameState.mode = 'idle';
-            messageArea.className = "bg-yellow-500 text-white p-4 rounded-2xl text-center min-h-[90px] flex flex-col justify-center items-center border-4 border-yellow-400 shadow-lg";
-            mainInstruction.innerText = "TIME'S UP! ⏰";
-            subInstruction.innerText = `Great job! Final Score: ${gameState.score}`;
-            speak("Süre bitti! Tebrikler."); // TR
+            updateHighScore(gameState.score);
+            certName.innerText = gameState.currentPlayer;
+            certScore.innerText = gameState.score;
+            certModal.style.display = 'flex';
+            
+            // Removed spoken feedback for game over
+            // speak("Süre bitti! Tebrikler " + gameState.currentPlayer); 
+            
+            triggerConfetti();
+        }
+
+        function closeCertificate() {
+            certModal.style.display = 'none';
+            setMode('idle');
         }
 
         function nextQuestion() {
             if (gameState.mode !== 'playing') return;
+            removeHints();
 
             const randomPart = gameState.partsList[Math.floor(Math.random() * gameState.partsList.length)];
             gameState.targetPart = randomPart;
@@ -614,30 +594,57 @@
             messageArea.className = "bg-indigo-500 text-white p-4 rounded-2xl text-center min-h-[90px] flex flex-col justify-center items-center border-4 border-indigo-400 shadow-lg";
             mainInstruction.innerHTML = `Touch the <span class="text-yellow-300 uppercase text-4xl tracking-wider font-extrabold drop-shadow-md">${randomPart}</span>`;
             subInstruction.innerText = "Find it quickly!"; 
+            
+            // Set Hint Timeout (4 seconds)
+            clearTimeout(gameState.hintTimeout);
+            gameState.hintTimeout = setTimeout(() => {
+                showHint(gameState.targetPart);
+            }, 4000);
+        }
+
+        function showHint(partName) {
+            if (gameState.mode !== 'playing') return;
+            const parts = document.querySelectorAll(`.body-part[data-part="${partName}"]`);
+            parts.forEach(p => p.classList.add('hint-active'));
+            subInstruction.innerText = "Hint: Look for the glow! ✨";
+        }
+
+        function removeHints() {
+            bodyParts.forEach(p => p.classList.remove('hint-active'));
         }
 
         function addStar() {
             const star = document.createElement('span');
-            star.innerText = '⭐';
-            star.className = 'star-icon';
-            starArea.appendChild(star);
-            gameState.starCount++;
+            star.innerText = '⭐'; star.className = 'star-icon';
+            starArea.appendChild(star); gameState.starCount++;
         }
 
-        function unlockSunglasses() {
-            gameState.sunglassesUnlocked = true;
-            sunglassesEl.style.display = 'block';
-            chestStarEl.style.display = 'block';
-            playWinSound();
-            speak("Vay! Harika gözlükler!"); // TR
-            triggerConfetti();
+        function checkRewards() {
+            if (gameState.score >= 30 && !gameState.rewardsUnlocked.hat) {
+                gameState.rewardsUnlocked.hat = true; hatEl.style.display = 'block';
+                playWinSound(); 
+                // Removed spoken feedback for rewards
+                triggerConfetti();
+            }
+            if (gameState.score >= 60 && !gameState.rewardsUnlocked.sunglasses) {
+                gameState.rewardsUnlocked.sunglasses = true;
+                sunglassesEl.style.display = 'block'; chestStarEl.style.display = 'block';
+                playWinSound(); 
+                // Removed spoken feedback for rewards
+                triggerConfetti();
+            }
+            if (gameState.score >= 90 && !gameState.rewardsUnlocked.cape) {
+                gameState.rewardsUnlocked.cape = true; capeEl.style.display = 'block';
+                playWinSound(); 
+                // Removed spoken feedback for rewards
+                triggerConfetti();
+            }
         }
 
         function handlePartClick(e) {
             initAudio();
             if (gameState.mode !== 'playing') return;
 
-            // Handle clicking the text inside torso
             let targetEl = e.target;
             if(!targetEl.classList.contains('body-part') && targetEl.parentElement.classList.contains('body-part')) {
                 targetEl = targetEl.parentElement;
@@ -646,29 +653,21 @@
             const clickedPart = targetEl.dataset.part;
             
             if (clickedPart === gameState.targetPart) {
-                // Correct!
+                // Correct
+                clearTimeout(gameState.hintTimeout); // Stop hint timer
+                removeHints(); // Remove hints if active
+
                 playCorrectSound();
                 gameState.score += 10;
                 scoreEl.innerText = gameState.score;
-                
-                // Add a star every correct answer
                 addStar();
+                checkRewards();
 
-                // Unlock reward at 50 points
-                if (gameState.score === 50 && !gameState.sunglassesUnlocked) {
-                    unlockSunglasses();
-                } else {
-                    // Regular correct feedback
-                    triggerConfetti(); 
-                }
+                if(gameState.score !== 30 && gameState.score !== 60 && gameState.score !== 90) { triggerConfetti(); }
 
-                // Make mouth smile
                 document.getElementById('mouth').classList.add('happy');
-
-                // Visual feedback
                 messageArea.className = "bg-green-500 text-white p-4 rounded-2xl text-center min-h-[90px] flex flex-col justify-center items-center border-4 border-green-400 shadow-lg transform scale-105";
-                mainInstruction.innerText = "YES! Awesome! 🎉";
-                subInstruction.innerText = "";
+                mainInstruction.innerText = "YES! Awesome! 🎉"; subInstruction.innerText = "";
                 
                 const correctElements = document.querySelectorAll(`.body-part[data-part="${clickedPart}"]`);
                 correctElements.forEach(el => el.classList.add('correct'));
@@ -680,12 +679,10 @@
                 }, 1500); 
 
             } else {
-                // Wrong!
+                // Wrong
                 playWrongSound();
                 messageArea.className = "bg-red-500 text-white p-4 rounded-2xl text-center min-h-[90px] flex flex-col justify-center items-center border-4 border-red-400 shadow-lg";
-                mainInstruction.innerText = "Oops! Try Again 🙈";
-                subInstruction.innerText = "";
-
+                mainInstruction.innerText = "Oops! Try Again 🙈"; subInstruction.innerText = "";
                 targetEl.classList.add('wrong');
                 setTimeout(() => targetEl.classList.remove('wrong'), 500);
             }
@@ -694,33 +691,23 @@
         let hoverTimeout;
         function handleHover(e) {
             if (gameState.mode !== 'learn') return;
-
             const partName = e.target.dataset.part;
             mainInstruction.innerText = partName.toUpperCase();
             subInstruction.innerText = "Listen..."; 
-            
             clearTimeout(hoverTimeout);
-            hoverTimeout = setTimeout(() => {
-                // Keep vocab audio English so they learn the correct pronunciation
-                speak(partName, 'en-US'); 
-            }, 50);
+            // Keep vocab audio English so they learn the correct pronunciation
+            hoverTimeout = setTimeout(() => { speak(partName, 'en-US'); }, 50);
         }
 
         function clearHover() {
             if (gameState.mode !== 'learn') return;
-            mainInstruction.innerText = "Hover & Learn";
-            subInstruction.innerText = "...";
+            mainInstruction.innerText = "Hover & Learn"; subInstruction.innerText = "...";
             clearTimeout(hoverTimeout);
         }
 
         function triggerConfetti() {
-            var count = 100;
-            var defaults = { origin: { y: 0.7 } };
-            function fire(particleRatio, opts) {
-                confetti(Object.assign({}, defaults, opts, {
-                    particleCount: Math.floor(count * particleRatio)
-                }));
-            }
+            var count = 100; var defaults = { origin: { y: 0.7 } };
+            function fire(particleRatio, opts) { confetti(Object.assign({}, defaults, opts, { particleCount: Math.floor(count * particleRatio) })); }
             fire(0.25, { spread: 26, startVelocity: 55, colors: ['#FFD700', '#FF69B4'] });
             fire(0.2, { spread: 60, colors: ['#00FFFF', '#FF4500'] });
         }
