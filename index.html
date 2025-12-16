@@ -11,6 +11,15 @@
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap" rel="stylesheet">
     
     <style>
+        :root {
+            /* Default Character Colors */
+            --skin-color: #FFCCBC;
+            --hair-color: #5D4037;
+            --shirt-color: #3B82F6;
+            --pants-color: #1E3A8A;
+            --shoe-color: #333;
+        }
+
         body {
             font-family: 'Fredoka', sans-serif;
             background: linear-gradient(180deg, #60A5FA 0%, #E0F2FE 100%); /* Sky gradient */
@@ -74,21 +83,21 @@
         /* Head Area */
         .hair {
             top: 20px; left: 75px; width: 150px; height: 60px;
-            background: #5D4037; border-radius: 50px 50px 0 0;
+            background: var(--hair-color); border-radius: 50px 50px 0 0;
             z-index: 5;
         }
         
         .head-shape {
             position: absolute;
             top: 50px; left: 85px; width: 130px; height: 140px;
-            background: #FFCCBC; border-radius: 40px;
+            background: var(--skin-color); border-radius: 40px;
             z-index: 1; 
             border: 3px solid #333;
         }
 
         .ear {
             top: 100px; width: 30px; height: 40px;
-            background: #FFCCBC; z-index: 3;
+            background: var(--skin-color); z-index: 3;
         }
         .ear.left { left: 65px; border-radius: 20px 0 0 20px; }
         .ear.right { left: 205px; border-radius: 0 20px 20px 0; }
@@ -110,6 +119,7 @@
             top: 120px; left: 140px; width: 20px; height: 25px;
             background: #EAB19D; border-radius: 10px;
             z-index: 6;
+            opacity: 0.8; /* Slight transparency to blend with skin changes */
         }
 
         .mouth {
@@ -153,7 +163,7 @@
         /* Body Area */
         .torso {
             top: 185px; left: 90px; width: 120px; height: 155px;
-            background: #3B82F6; border-radius: 20px;
+            background: var(--shirt-color); border-radius: 20px;
             z-index: 4;
             display: flex; align-items: center; justify-content: center;
             color: rgba(255,255,255,0.8); 
@@ -169,7 +179,7 @@
 
         .arm {
             top: 210px; width: 40px; height: 100px;
-            background: #F59E0B; border-radius: 20px;
+            background: var(--shirt-color); border-radius: 20px; /* Arms match shirt usually, or skin? Let's say sleeves match shirt */
             z-index: 3;
         }
         .arm.left { left: 55px; transform: rotate(10deg); }
@@ -177,7 +187,7 @@
 
         .hand {
             top: 300px; width: 40px; height: 40px;
-            background: #FFCCBC; border-radius: 50%;
+            background: var(--skin-color); border-radius: 50%;
             z-index: 3;
         }
         .hand.left { left: 50px; }
@@ -185,7 +195,7 @@
 
         .leg {
             top: 330px; width: 45px; height: 110px;
-            background: #1E3A8A; border-radius: 10px;
+            background: var(--pants-color); border-radius: 10px;
             z-index: 2;
         }
         .leg.left { left: 95px; }
@@ -193,7 +203,7 @@
 
         .foot {
             top: 430px; width: 60px; height: 30px;
-            background: #333; border-radius: 20px 20px 5px 5px;
+            background: var(--shoe-color); border-radius: 20px 20px 5px 5px;
             z-index: 1;
         }
         .foot.left { left: 85px; }
@@ -216,12 +226,33 @@
             100% { transform: scale(1); opacity: 1; }
         }
 
+        /* Color Picker Inputs */
+        .color-control {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .color-control label {
+            font-weight: bold;
+            color: #333;
+            width: 100px;
+            text-align: right;
+        }
+        input[type="color"] {
+            border: none;
+            width: 40px;
+            height: 40px;
+            cursor: pointer;
+            background: none;
+        }
+
     </style>
 </head>
 <body class="min-h-screen flex flex-col items-center justify-center p-4">
 
     <!-- Header & Scoreboard -->
-    <div class="w-full max-w-2xl bg-white/90 backdrop-blur-sm rounded-3xl shadow-2xl p-6 mb-6 border-4 border-white relative">
+    <div class="w-full max-w-3xl bg-white/90 backdrop-blur-sm rounded-3xl shadow-2xl p-6 mb-6 border-4 border-white relative">
         
         <!-- Top Row: Title + Stats -->
         <div class="flex flex-col md:flex-row justify-between items-center mb-4 gap-4">
@@ -231,14 +262,14 @@
                 <p class="text-blue-400 text-sm font-bold">Body Parts Game</p>
             </div>
             
-            <div class="flex items-center gap-3 flex-wrap justify-center">
+            <div id="stats-panel" class="flex items-center gap-3 flex-wrap justify-center">
                 <!-- Score Box -->
                 <div class="bg-yellow-300 border-b-4 border-yellow-500 px-4 py-2 rounded-2xl text-center min-w-[90px] shadow-sm">
                     <span class="block text-xs text-yellow-800 font-bold uppercase tracking-widest">Score</span>
                     <span id="score" class="text-3xl font-extrabold text-yellow-900">0</span>
                 </div>
                 
-                <!-- Timer Box (New) -->
+                <!-- Timer Box -->
                 <div class="bg-red-300 border-b-4 border-red-500 px-4 py-2 rounded-2xl text-center min-w-[90px] shadow-sm">
                     <span class="block text-xs text-red-800 font-bold uppercase tracking-widest">Time</span>
                     <span id="timer" class="text-3xl font-extrabold text-red-900">60</span>
@@ -251,7 +282,7 @@
             </div>
         </div>
 
-        <!-- Player Name Display (New) -->
+        <!-- Player Name Display -->
         <div class="absolute -right-4 top-24 hidden md:block rotate-3" id="desktop-player-badge">
              <div class="bg-indigo-500 text-white p-4 rounded-xl shadow-xl border-4 border-white transform transition hover:scale-110">
                 <span class="block text-xs font-bold uppercase opacity-75">Current Player</span>
@@ -259,8 +290,8 @@
              </div>
         </div>
 
-        <!-- Mobile Player Badge (Visible on small screens) -->
-        <div class="md:hidden bg-indigo-500 text-white p-2 rounded-xl text-center mb-4 shadow-md mx-auto max-w-[200px]">
+        <!-- Mobile Player Badge -->
+        <div class="md:hidden bg-indigo-500 text-white p-2 rounded-xl text-center mb-4 shadow-md mx-auto max-w-[200px]" id="mobile-player-badge">
             <span class="text-xs font-bold uppercase opacity-75">Player: </span>
             <span id="player-name-mobile" class="font-bold">???</span>
         </div>
@@ -277,14 +308,44 @@
             <p id="sub-instruction" class="text-blue-100 text-lg font-medium">Click Play to pick a student!</p>
         </div>
 
+        <!-- Creator Panel (Hidden by default) -->
+        <div id="creator-panel" class="hidden bg-orange-100 p-4 rounded-2xl border-4 border-orange-300 mt-4 text-center">
+            <h3 class="text-2xl font-bold text-orange-600 mb-4">Design Your Character! 🎨</h3>
+            <div class="flex flex-wrap justify-center gap-4">
+                <div class="color-control">
+                    <label>Skin/Ten:</label>
+                    <input type="color" value="#FFCCBC" onchange="updateCharacterColor('--skin-color', this.value)">
+                </div>
+                <div class="color-control">
+                    <label>Hair/Saç:</label>
+                    <input type="color" value="#5D4037" onchange="updateCharacterColor('--hair-color', this.value)">
+                </div>
+                <div class="color-control">
+                    <label>Shirt/Tişört:</label>
+                    <input type="color" value="#3B82F6" onchange="updateCharacterColor('--shirt-color', this.value)">
+                </div>
+                <div class="color-control">
+                    <label>Pants/Alt:</label>
+                    <input type="color" value="#1E3A8A" onchange="updateCharacterColor('--pants-color', this.value)">
+                </div>
+            </div>
+            <button onclick="setMode('idle')" class="mt-4 px-6 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-bold shadow-md">
+                ✅ Done / Tamam
+            </button>
+        </div>
+
         <!-- Controls -->
-        <div class="flex justify-center gap-6 mt-6">
-            <button onclick="setMode('learn')" class="group relative px-8 py-3 bg-purple-400 hover:bg-purple-500 text-white rounded-2xl font-bold text-xl transition shadow-lg border-b-8 border-purple-700 active:border-b-0 active:translate-y-2">
-                <span class="text-3xl block mb-1">👀</span>
+        <div class="flex flex-wrap justify-center gap-4 mt-6" id="controls">
+            <button onclick="setMode('learn')" class="group relative px-6 py-3 bg-purple-400 hover:bg-purple-500 text-white rounded-2xl font-bold text-xl transition shadow-lg border-b-8 border-purple-700 active:border-b-0 active:translate-y-2">
+                <span class="text-2xl block mb-1">👀</span>
                 Study
             </button>
-            <button onclick="startGame()" class="group relative px-8 py-3 bg-green-400 hover:bg-green-500 text-white rounded-2xl font-bold text-xl transition shadow-lg border-b-8 border-green-700 active:border-b-0 active:translate-y-2">
-                <span class="text-3xl block mb-1">🎮</span>
+            <button onclick="setMode('create')" class="group relative px-6 py-3 bg-orange-400 hover:bg-orange-500 text-white rounded-2xl font-bold text-xl transition shadow-lg border-b-8 border-orange-700 active:border-b-0 active:translate-y-2">
+                <span class="text-2xl block mb-1">🎨</span>
+                Create
+            </button>
+            <button onclick="startGame()" class="group relative px-6 py-3 bg-green-400 hover:bg-green-500 text-white rounded-2xl font-bold text-xl transition shadow-lg border-b-8 border-green-700 active:border-b-0 active:translate-y-2">
+                <span class="text-2xl block mb-1">🎮</span>
                 Play
             </button>
         </div>
@@ -423,6 +484,9 @@
         const chestStarEl = document.querySelector('.chest-star');
         const playerNameDesktop = document.getElementById('player-name-desktop');
         const playerNameMobile = document.getElementById('player-name-mobile');
+        const creatorPanel = document.getElementById('creator-panel');
+        const controls = document.getElementById('controls');
+        const statsPanel = document.getElementById('stats-panel');
 
         // Initial setup
         bodyParts.forEach(part => {
@@ -430,6 +494,11 @@
             part.addEventListener('mouseenter', (e) => handleHover(e));
             part.addEventListener('mouseleave', () => clearHover());
         });
+
+        // Function to update character CSS variables
+        function updateCharacterColor(variable, color) {
+            document.documentElement.style.setProperty(variable, color);
+        }
 
         function setMode(mode) {
             initAudio();
@@ -440,6 +509,23 @@
             bodyParts.forEach(p => p.classList.remove('correct', 'wrong'));
             messageArea.className = "bg-blue-500 text-white p-4 rounded-2xl text-center min-h-[90px] flex flex-col justify-center items-center transition-all duration-300 border-4 border-blue-400 shadow-lg";
             
+            // Toggle Visibility based on mode
+            if (mode === 'create') {
+                creatorPanel.classList.remove('hidden');
+                messageArea.classList.add('hidden');
+                statsPanel.classList.add('hidden');
+                controls.classList.add('hidden'); // Hide buttons while creating
+                
+                // Show simple feedback in character creation
+                mainInstruction.innerText = "Design Time! 🎨";
+                subInstruction.innerText = "Pick colors below";
+            } else {
+                creatorPanel.classList.add('hidden');
+                messageArea.classList.remove('hidden');
+                statsPanel.classList.remove('hidden');
+                controls.classList.remove('hidden');
+            }
+
             // Reset Player Name if not playing
             if (mode !== 'playing') {
                 updatePlayerName("???");
@@ -459,6 +545,12 @@
                 timerEl.innerText = "-";
                 speak("Çalışma Modu"); // TR
             }
+
+            if (mode === 'idle') {
+                messageArea.classList.remove('hidden');
+                mainInstruction.innerText = "Welcome! 👋";
+                subInstruction.innerText = "Choose a mode below";
+            }
         }
 
         function updatePlayerName(name) {
@@ -467,8 +559,7 @@
         }
 
         function startGame() {
-            initAudio();
-            gameState.mode = 'playing';
+            setMode('playing'); // Ensure mode is set first
             gameState.score = 0;
             gameState.starCount = 0;
             gameState.timer = 60; // 60 Seconds
