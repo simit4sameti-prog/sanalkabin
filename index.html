@@ -25,6 +25,7 @@
             background: linear-gradient(180deg, #60A5FA 0%, #E0F2FE 100%); /* Sky gradient */
             overflow-x: hidden; 
             overflow-y: auto; /* Ensure vertical scroll works */
+            user-select: none;
         }
 
         /* BALLOONS BACKGROUND ANIMATION */
@@ -68,6 +69,42 @@
             animation: hintPulse 1.5s infinite;
             border-color: #FFD700 !important;
             z-index: 50 !important;
+        }
+
+        /* COMBO TEXT ANIMATION */
+        .combo-text {
+            position: absolute;
+            font-size: 2rem;
+            font-weight: bold;
+            color: #FCD34D; /* Gold */
+            text-shadow: 2px 2px 0 #D97706;
+            pointer-events: none;
+            z-index: 100;
+            animation: popUpFade 1s ease-out forwards;
+        }
+        @keyframes popUpFade {
+            0% { transform: translateY(0) scale(0.5); opacity: 0; }
+            20% { transform: translateY(-20px) scale(1.2); opacity: 1; }
+            100% { transform: translateY(-50px) scale(1); opacity: 0; }
+        }
+
+        /* BONUS ITEM (CLOCK) */
+        .bonus-item {
+            position: absolute;
+            font-size: 3rem;
+            cursor: pointer;
+            z-index: 60;
+            pointer-events: auto; /* Fix: Allow clicks on the clock */
+            filter: drop-shadow(0 4px 6px rgba(0,0,0,0.2));
+            transition: transform 0.2s;
+            animation: floatUp 8s linear forwards;
+        }
+        .bonus-item:hover { transform: scale(1.2); }
+        .bonus-item:active { transform: scale(0.9); }
+        
+        @keyframes floatUp {
+            from { bottom: -60px; transform: translateX(0) rotate(0deg); }
+            to { bottom: 100vh; transform: translateX(20px) rotate(20deg); }
         }
 
         /* Custom Styles for the Character */
@@ -219,12 +256,20 @@
             border-radius: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.2);
         }
 
+        /* OVERLAY CONTAINER for dynamic elements */
+        #overlay-container {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; overflow: hidden;
+        }
+
     </style>
 </head>
 <body class="min-h-screen flex flex-col items-center justify-center p-4">
 
     <!-- Balloon Background -->
     <div class="balloon-container" id="balloon-container"></div>
+    
+    <!-- Dynamic Overlay (for Combos & Bonus Items) -->
+    <div id="overlay-container"></div>
 
     <!-- Header & Scoreboard -->
     <div class="w-full max-w-3xl bg-white/90 backdrop-blur-sm rounded-3xl shadow-2xl p-6 mb-6 border-4 border-white relative">
@@ -436,13 +481,15 @@
         function playCorrectSound() { playTone(600, 'sine', 0.1); setTimeout(() => playTone(800, 'sine', 0.3), 100); }
         function playWrongSound() { playTone(150, 'sawtooth', 0.3); setTimeout(() => playTone(100, 'sawtooth', 0.3), 150); }
         function playWinSound() { playTone(500, 'square', 0.1); setTimeout(() => playTone(600, 'square', 0.1), 100); setTimeout(() => playTone(700, 'square', 0.1), 200); setTimeout(() => playTone(1000, 'sine', 0.4), 300); }
+        function playBonusSound() { playTone(880, 'sine', 0.1); setTimeout(() => playTone(1760, 'sine', 0.2), 100); }
 
         // --- Game Logic ---
         let gameState = {
             mode: 'idle', score: 0, starCount: 0, targetPart: null,
             partsList: ['hair', 'ear', 'eye', 'nose', 'mouth', 'arm', 'hand', 'leg', 'foot', 'body'],
             rewardsUnlocked: { hat: false, sunglasses: false, cape: false },
-            timer: 60, timerInterval: null, hintTimeout: null, currentPlayer: "???"
+            timer: 60, timerInterval: null, hintTimeout: null, currentPlayer: "???",
+            combo: 0, questionStartTime: 0, bonusInterval: null
         };
 
         // Elements
@@ -465,6 +512,7 @@
         const certModal = document.getElementById('certificate-modal');
         const certName = document.getElementById('cert-name');
         const certScore = document.getElementById('cert-score');
+        const overlayContainer = document.getElementById('overlay-container');
 
         // Eye Tracking Logic
         document.addEventListener('mousemove', (e) => {
@@ -494,8 +542,12 @@
             initAudio();
             gameState.mode = mode;
             clearInterval(gameState.timerInterval);
+            clearInterval(gameState.bonusInterval);
             clearTimeout(gameState.hintTimeout);
             removeHints();
+            
+            // Clean overlay items
+            overlayContainer.innerHTML = '';
             
             bodyParts.forEach(p => p.classList.remove('correct', 'wrong'));
             messageArea.className = "bg-blue-500 text-white p-4 rounded-2xl text-center min-h-[90px] flex flex-col justify-center items-center transition-all duration-300 border-4 border-blue-400 shadow-lg";
@@ -520,13 +572,13 @@
                gameState.rewardsUnlocked = { hat: false, sunglasses: false, cape: false };
                sunglassesEl.style.display = 'none'; hatEl.style.display = 'none'; capeEl.style.display = 'none';
                chestStarEl.style.display = 'none'; starArea.innerHTML = '';
+               gameState.combo = 0;
             }
 
             if (mode === 'learn') {
                 mainInstruction.innerText = "Hover & Learn!";
                 subInstruction.innerText = "Point to see names";
                 scoreEl.innerText = "-"; timerEl.innerText = "-";
-                // Removed spoken feedback for mode switch
             }
 
             if (mode === 'idle') {
@@ -545,12 +597,11 @@
         function startGame() {
             setMode('playing');
             gameState.score = 0; gameState.starCount = 0; gameState.timer = 60;
+            gameState.combo = 0;
             scoreEl.innerText = "0"; timerEl.innerText = "60"; starArea.innerHTML = ''; 
 
             const randomStudent = students[Math.floor(Math.random() * students.length)];
             updatePlayerName(randomStudent);
-            
-            // Only speak the name, nothing else
             speak(randomStudent);
             
             clearInterval(gameState.timerInterval);
@@ -562,20 +613,23 @@
                 if (gameState.timer <= 0) { endGame(); }
             }, 1000);
 
+            // Bonus Item Spawn Loop
+            clearInterval(gameState.bonusInterval);
+            gameState.bonusInterval = setInterval(() => {
+                if(Math.random() > 0.6) spawnBonusItem();
+            }, 5000);
+
             setTimeout(() => { nextQuestion(); }, 1000);
         }
 
         function endGame() {
             clearInterval(gameState.timerInterval);
+            clearInterval(gameState.bonusInterval);
             gameState.mode = 'idle';
             updateHighScore(gameState.score);
             certName.innerText = gameState.currentPlayer;
             certScore.innerText = gameState.score;
             certModal.style.display = 'flex';
-            
-            // Removed spoken feedback for game over
-            // speak("Süre bitti! Tebrikler " + gameState.currentPlayer); 
-            
             triggerConfetti();
         }
 
@@ -590,12 +644,12 @@
 
             const randomPart = gameState.partsList[Math.floor(Math.random() * gameState.partsList.length)];
             gameState.targetPart = randomPart;
+            gameState.questionStartTime = Date.now(); // Mark time
 
             messageArea.className = "bg-indigo-500 text-white p-4 rounded-2xl text-center min-h-[90px] flex flex-col justify-center items-center border-4 border-indigo-400 shadow-lg";
             mainInstruction.innerHTML = `Touch the <span class="text-yellow-300 uppercase text-4xl tracking-wider font-extrabold drop-shadow-md">${randomPart}</span>`;
             subInstruction.innerText = "Find it quickly!"; 
             
-            // Set Hint Timeout (4 seconds)
             clearTimeout(gameState.hintTimeout);
             gameState.hintTimeout = setTimeout(() => {
                 showHint(gameState.targetPart);
@@ -619,25 +673,66 @@
             starArea.appendChild(star); gameState.starCount++;
         }
 
+        // --- NEW FEATURES ---
+
+        function spawnBonusItem() {
+            const item = document.createElement('div');
+            item.className = 'bonus-item';
+            item.innerHTML = '⏰';
+            item.style.left = Math.random() * 80 + 10 + '%';
+            
+            item.onclick = (e) => {
+                e.stopPropagation(); // prevent triggering other clicks
+                collectBonus(item);
+            };
+
+            overlayContainer.appendChild(item);
+            
+            // Cleanup after animation
+            setTimeout(() => {
+                if(item.parentElement) item.remove();
+            }, 8000);
+        }
+
+        function collectBonus(item) {
+            if (gameState.mode !== 'playing') return;
+            gameState.timer += 5;
+            timerEl.innerText = gameState.timer;
+            timerEl.classList.add('scale-150', 'text-green-500');
+            setTimeout(() => timerEl.classList.remove('scale-150', 'text-green-500'), 300);
+            
+            playBonusSound();
+            
+            // Show +5 Sec Text
+            showFloatingText(item.getBoundingClientRect().left, item.getBoundingClientRect().top, "+5 Sec!", "#22C55E");
+            
+            item.remove();
+        }
+
+        function showFloatingText(x, y, text, color = "#FCD34D") {
+            const el = document.createElement('div');
+            el.className = 'combo-text';
+            el.innerText = text;
+            el.style.left = x + 'px';
+            el.style.top = y + 'px';
+            el.style.color = color;
+            document.body.appendChild(el);
+            setTimeout(() => el.remove(), 1000);
+        }
+
         function checkRewards() {
             if (gameState.score >= 30 && !gameState.rewardsUnlocked.hat) {
                 gameState.rewardsUnlocked.hat = true; hatEl.style.display = 'block';
-                playWinSound(); 
-                // Removed spoken feedback for rewards
-                triggerConfetti();
+                playWinSound(); triggerConfetti();
             }
             if (gameState.score >= 60 && !gameState.rewardsUnlocked.sunglasses) {
                 gameState.rewardsUnlocked.sunglasses = true;
                 sunglassesEl.style.display = 'block'; chestStarEl.style.display = 'block';
-                playWinSound(); 
-                // Removed spoken feedback for rewards
-                triggerConfetti();
+                playWinSound(); triggerConfetti();
             }
             if (gameState.score >= 90 && !gameState.rewardsUnlocked.cape) {
                 gameState.rewardsUnlocked.cape = true; capeEl.style.display = 'block';
-                playWinSound(); 
-                // Removed spoken feedback for rewards
-                triggerConfetti();
+                playWinSound(); triggerConfetti();
             }
         }
 
@@ -654,11 +749,28 @@
             
             if (clickedPart === gameState.targetPart) {
                 // Correct
-                clearTimeout(gameState.hintTimeout); // Stop hint timer
-                removeHints(); // Remove hints if active
-
+                const timeTaken = Date.now() - gameState.questionStartTime;
+                clearTimeout(gameState.hintTimeout);
+                removeHints(); 
                 playCorrectSound();
-                gameState.score += 10;
+
+                // Base points
+                let points = 10;
+
+                // COMBO LOGIC
+                if (timeTaken < 3000) { // Under 3 seconds
+                    gameState.combo++;
+                    if (gameState.combo > 1) {
+                         points += (gameState.combo * 2); // Bonus points
+                         showFloatingText(e.clientX, e.clientY - 50, `COMBO x${gameState.combo}!`);
+                    } else {
+                         showFloatingText(e.clientX, e.clientY - 50, "FAST!", "#60A5FA");
+                    }
+                } else {
+                    gameState.combo = 0;
+                }
+
+                gameState.score += points;
                 scoreEl.innerText = gameState.score;
                 addStar();
                 checkRewards();
@@ -681,6 +793,7 @@
             } else {
                 // Wrong
                 playWrongSound();
+                gameState.combo = 0; // Reset combo
                 messageArea.className = "bg-red-500 text-white p-4 rounded-2xl text-center min-h-[90px] flex flex-col justify-center items-center border-4 border-red-400 shadow-lg";
                 mainInstruction.innerText = "Oops! Try Again 🙈"; subInstruction.innerText = "";
                 targetEl.classList.add('wrong');
