@@ -450,6 +450,17 @@
             "Mürüvvet Şenkal", "Fatma İnce", "Edanur Demir", 
             "Sedanur Saldanlı", "İlayda Eylül Şahin", "Zeliha Sağır"
         ];
+        
+        // Track available students to avoid repeats
+        let availableStudents = [...students];
+        
+        function getNextStudent() {
+            if (availableStudents.length === 0) {
+                availableStudents = [...students]; // Reset list if empty
+            }
+            const randomIndex = Math.floor(Math.random() * availableStudents.length);
+            return availableStudents.splice(randomIndex, 1)[0];
+        }
 
         // --- Sound System ---
         const synth = window.speechSynthesis;
@@ -487,6 +498,7 @@
         let gameState = {
             mode: 'idle', score: 0, starCount: 0, targetPart: null,
             partsList: ['hair', 'ear', 'eye', 'nose', 'mouth', 'arm', 'hand', 'leg', 'foot', 'body'],
+            availableParts: [],
             rewardsUnlocked: { hat: false, sunglasses: false, cape: false },
             timer: 60, timerInterval: null, hintTimeout: null, currentPlayer: "???",
             combo: 0, questionStartTime: 0, bonusInterval: null
@@ -600,9 +612,13 @@
             gameState.combo = 0;
             scoreEl.innerText = "0"; timerEl.innerText = "60"; starArea.innerHTML = ''; 
 
-            const randomStudent = students[Math.floor(Math.random() * students.length)];
-            updatePlayerName(randomStudent);
-            speak(randomStudent);
+            // Initialize available parts deck
+            gameState.availableParts = [...gameState.partsList];
+
+            // Get unique student
+            const student = getNextStudent();
+            updatePlayerName(student);
+            speak(student);
             
             clearInterval(gameState.timerInterval);
             gameState.timerInterval = setInterval(() => {
@@ -642,7 +658,15 @@
             if (gameState.mode !== 'playing') return;
             removeHints();
 
-            const randomPart = gameState.partsList[Math.floor(Math.random() * gameState.partsList.length)];
+            // Refill if empty
+            if (gameState.availableParts.length === 0) {
+                gameState.availableParts = [...gameState.partsList];
+            }
+
+            // Pick unique part
+            const randomIndex = Math.floor(Math.random() * gameState.availableParts.length);
+            const randomPart = gameState.availableParts.splice(randomIndex, 1)[0];
+            
             gameState.targetPart = randomPart;
             gameState.questionStartTime = Date.now(); // Mark time
 
