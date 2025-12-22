@@ -258,12 +258,13 @@
         <!-- Star Progress Bar -->
         <div class="star-container mb-4" id="star-area"></div>
 
-        <!-- LISTENING & FEEDBACK AREA (Replaced Text with Visuals) -->
+        <!-- LISTENING & FEEDBACK AREA -->
         <div id="message-area" class="bg-blue-100 border-4 border-blue-300 p-2 rounded-3xl text-center min-h-[120px] flex flex-col justify-center items-center relative overflow-hidden transition-colors duration-300">
             
             <!-- Default Welcome State -->
             <div id="welcome-msg">
-                <span class="text-4xl">👋</span>
+                <h2 id="main-instruction" class="text-3xl font-bold drop-shadow-md text-blue-600">Merhaba! 👋</h2>
+                <p id="sub-instruction" class="text-blue-500 text-sm font-medium">Oynamak için butona bas</p>
             </div>
 
             <!-- Listening Button (Hidden by default) -->
@@ -275,9 +276,7 @@
             </div>
 
             <!-- Visual Feedback (Check/Cross) -->
-            <div id="visual-feedback" class="hidden text-6xl drop-shadow-md animate-bounce">
-                <!-- Javascript will inject ✅ or ❌ -->
-            </div>
+            <div id="visual-feedback" class="hidden text-6xl drop-shadow-md animate-bounce"></div>
 
         </div>
 
@@ -402,39 +401,49 @@
         // --- Sound System ---
         const synth = window.speechSynthesis;
         let audioCtx;
-        let selectedVoice = null;
-
-        // Better voice selection logic
-        function loadVoices() {
-            const voices = synth.getVoices();
-            // Try to find a native sounding English voice (Google or Microsoft often best)
-            selectedVoice = voices.find(voice => voice.lang === 'en-US' && voice.name.includes('Google')) ||
-                            voices.find(voice => voice.lang === 'en-GB' && voice.name.includes('Google')) ||
-                            voices.find(voice => voice.lang === 'en-US' && !voice.name.includes('Google')) ||
-                            voices.find(voice => voice.lang === 'en-GB');
-        }
-
-        // Ensure voices are loaded (browsers load them async)
-        if (speechSynthesis.onvoiceschanged !== undefined) {
-            speechSynthesis.onvoiceschanged = loadVoices;
-        }
-        loadVoices();
+        
+        // Cache for audio files to prevent redownloading
+        const audioCache = {};
 
         function initAudio() {
             if (!audioCtx) { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
             if (audioCtx.state === 'suspended') { audioCtx.resume(); }
-            loadVoices(); // Retry loading voices on user interaction
         }
 
+        // UPDATED: Smart Speech Function (Mixes Real Audio & TTS)
         function speak(text, lang = 'en-US') {
             if (synth.speaking) { synth.cancel(); }
-            const utterThis = new SpeechSynthesisUtterance(text);
-            
-            // Assign the specific found voice to force correct accent
-            if (selectedVoice) {
-                utterThis.voice = selectedVoice;
+
+            // 1. If it's Turkish or a sentence, ALWAYS use Browser TTS
+            if (lang === 'tr-TR' || text.includes(' ')) {
+                const utterThis = new SpeechSynthesisUtterance(text);
+                utterThis.lang = lang;
+                utterThis.rate = 0.9;
+                synth.speak(utterThis);
+                return;
             }
 
+            // 2. If it's a single English word (Body Part), use Real Audio (Youdao)
+            const lowerText = text.toLowerCase();
+            if (audioCache[lowerText]) {
+                audioCache[lowerText].currentTime = 0;
+                audioCache[lowerText].play().catch(e => playRoboticFallback(text, lang));
+                return;
+            }
+
+            const audioUrl = `https://dict.youdao.com/dictvoice?audio=${encodeURIComponent(text)}&type=2`; // Type 2 = American
+            const audio = new Audio(audioUrl);
+            
+            audio.oncanplaythrough = () => {
+                audio.play().catch(e => playRoboticFallback(text, lang));
+                audioCache[lowerText] = audio;
+            };
+            audio.onerror = () => { playRoboticFallback(text, lang); };
+            audio.load();
+        }
+
+        function playRoboticFallback(text, lang) {
+            const utterThis = new SpeechSynthesisUtterance(text);
             utterThis.lang = lang; 
             utterThis.pitch = 1.1; 
             utterThis.rate = 0.9; 
@@ -469,6 +478,8 @@
 
         // UI Elements
         const messageArea = document.getElementById('message-area');
+        const mainInstruction = document.getElementById('main-instruction');
+        const subInstruction = document.getElementById('sub-instruction');
         const welcomeMsg = document.getElementById('welcome-msg');
         const audioVisual = document.getElementById('audio-visual');
         const visualFeedback = document.getElementById('visual-feedback');
@@ -525,39 +536,44 @@
             overlayContainer.innerHTML = '';
             bodyParts.forEach(p => p.classList.remove('correct', 'wrong'));
             
-            // Reset Feedback UI
+            // Reset UI Visibility
             visualFeedback.classList.add('hidden');
             audioVisual.classList.add('hidden');
             welcomeMsg.classList.remove('hidden');
+            creatorPanel.classList.add('hidden');
+            messageArea.classList.remove('hidden');
+            statsPanel.classList.remove('hidden');
+            controls.classList.remove('hidden');
             messageArea.className = "bg-blue-100 border-4 border-blue-300 p-2 rounded-3xl text-center min-h-[120px] flex flex-col justify-center items-center relative overflow-hidden transition-colors duration-300";
+
+            // Main Instruction Reset
+            mainInstruction.innerText = "Merhaba! 👋";
+            mainInstruction.className = "text-3xl font-bold drop-shadow-md text-blue-600";
+            subInstruction.innerText = "Oynamak için butona bas";
 
             if (mode === 'create') {
                 creatorPanel.classList.remove('hidden');
                 messageArea.classList.add('hidden');
                 statsPanel.classList.add('hidden');
                 controls.classList.add('hidden');
-            } else {
-                creatorPanel.classList.add('hidden');
-                messageArea.classList.remove('hidden');
-                statsPanel.classList.remove('hidden');
-                controls.classList.remove('hidden');
+            } else if (mode === 'starting') {
+                controls.classList.add('hidden'); // Hide buttons while counting down
             }
 
-            if (mode !== 'playing') { updatePlayerName("???"); }
+            if (mode !== 'playing' && mode !== 'starting') { updatePlayerName("???"); }
 
             if(mode === 'playing') {
                gameState.rewardsUnlocked = { hat: false, sunglasses: false, cape: false };
                sunglassesEl.style.display = 'none'; hatEl.style.display = 'none'; capeEl.style.display = 'none';
                chestStarEl.style.display = 'none'; starArea.innerHTML = '';
                gameState.combo = 0;
-               // Prepare UI for play
+               
                welcomeMsg.classList.add('hidden');
                audioVisual.classList.remove('hidden');
             }
 
             if (mode === 'learn') {
                 scoreEl.innerText = "-"; timerEl.innerText = "-";
-                // Show visuals for parts if needed, but keeping it simple
             }
         }
 
@@ -574,7 +590,7 @@
         }
 
         function startGame() {
-            setMode('playing');
+            setMode('starting');
             gameState.score = 0; gameState.starCount = 0; gameState.timer = 60;
             gameState.combo = 0;
             scoreEl.innerText = "0"; timerEl.innerText = "60"; starArea.innerHTML = ''; 
@@ -583,8 +599,39 @@
 
             const student = getNextStudent();
             updatePlayerName(student);
-            // REMOVED: speak(student);  <- Artık isim okunmayacak
             
+            // 1. Student Name
+            mainInstruction.innerText = student;
+            mainInstruction.className = "text-4xl font-extrabold text-indigo-600 drop-shadow-lg animate-pulse";
+            subInstruction.innerText = "Hazırlan...";
+            speak(student, 'tr-TR');
+
+            let count = 3;
+            setTimeout(() => {
+                const countdownInterval = setInterval(() => {
+                    if (count > 0) {
+                        mainInstruction.innerText = count;
+                        mainInstruction.className = "text-6xl font-black text-red-500 drop-shadow-xl scale-125 transition-all";
+                        speak(count.toString(), 'tr-TR');
+                        count--;
+                    } else {
+                        clearInterval(countdownInterval);
+                        mainInstruction.innerText = "Oyun Başladı!";
+                        mainInstruction.className = "text-4xl font-black text-green-500 drop-shadow-xl";
+                        speak("Oyun Başladı", 'tr-TR');
+                        
+                        setTimeout(() => {
+                            startActualGame();
+                        }, 1000);
+                    }
+                }, 1000);
+            }, 1500);
+        }
+
+        function startActualGame() {
+            setMode('playing');
+            
+            // Start Timers
             clearInterval(gameState.timerInterval);
             gameState.timerInterval = setInterval(() => {
                 gameState.timer--;
@@ -599,7 +646,7 @@
                 if(Math.random() > 0.6) spawnBonusItem();
             }, 5000);
 
-            setTimeout(() => { nextQuestion(); }, 500); // Delay kısaltıldı çünkü isim okunmuyor
+            nextQuestion();
         }
 
         function endGame() {
@@ -610,6 +657,7 @@
             certName.innerText = gameState.currentPlayer;
             certScore.innerText = gameState.score;
             certModal.style.display = 'flex';
+            speak("Süre bitti! Tebrikler", 'tr-TR');
             triggerConfetti();
         }
 
@@ -622,7 +670,6 @@
             if (gameState.mode !== 'playing') return;
             removeHints();
             
-            // Reset Feedback UI
             visualFeedback.classList.add('hidden');
             audioVisual.classList.remove('hidden');
             messageArea.className = "bg-blue-100 border-4 border-blue-300 p-2 rounded-3xl text-center min-h-[120px] flex flex-col justify-center items-center relative overflow-hidden transition-colors duration-300";
@@ -637,7 +684,6 @@
             gameState.targetPart = randomPart;
             gameState.questionStartTime = Date.now(); 
 
-            // Play Audio Automatically
             speak(randomPart, 'en-US');
             
             clearTimeout(gameState.hintTimeout);
@@ -724,7 +770,6 @@
                 removeHints(); 
                 playCorrectSound();
 
-                // VISUAL FEEDBACK: GREEN CHECK
                 audioVisual.classList.add('hidden');
                 visualFeedback.innerText = "✔";
                 visualFeedback.className = "text-6xl text-green-600 drop-shadow-md animate-bounce";
@@ -767,7 +812,6 @@
                 playWrongSound();
                 gameState.combo = 0;
                 
-                // VISUAL FEEDBACK: RED CROSS
                 audioVisual.classList.add('hidden');
                 visualFeedback.innerText = "❌";
                 visualFeedback.className = "text-6xl text-red-600 drop-shadow-md animate-pulse";
@@ -777,7 +821,6 @@
                 targetEl.classList.add('wrong');
                 setTimeout(() => {
                     targetEl.classList.remove('wrong');
-                    // Reset to audio button after feedback
                     visualFeedback.classList.add('hidden');
                     audioVisual.classList.remove('hidden');
                     messageArea.className = "bg-blue-100 border-4 border-blue-300 p-2 rounded-3xl text-center min-h-[120px] flex flex-col justify-center items-center relative overflow-hidden transition-colors duration-300";
