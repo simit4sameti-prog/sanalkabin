@@ -402,16 +402,42 @@
         // --- Sound System ---
         const synth = window.speechSynthesis;
         let audioCtx;
+        let selectedVoice = null;
+
+        // Better voice selection logic
+        function loadVoices() {
+            const voices = synth.getVoices();
+            // Try to find a native sounding English voice (Google or Microsoft often best)
+            selectedVoice = voices.find(voice => voice.lang === 'en-US' && voice.name.includes('Google')) ||
+                            voices.find(voice => voice.lang === 'en-GB' && voice.name.includes('Google')) ||
+                            voices.find(voice => voice.lang === 'en-US' && !voice.name.includes('Google')) ||
+                            voices.find(voice => voice.lang === 'en-GB');
+        }
+
+        // Ensure voices are loaded (browsers load them async)
+        if (speechSynthesis.onvoiceschanged !== undefined) {
+            speechSynthesis.onvoiceschanged = loadVoices;
+        }
+        loadVoices();
 
         function initAudio() {
             if (!audioCtx) { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
             if (audioCtx.state === 'suspended') { audioCtx.resume(); }
+            loadVoices(); // Retry loading voices on user interaction
         }
 
-        function speak(text, lang = 'tr-TR') {
+        function speak(text, lang = 'en-US') {
             if (synth.speaking) { synth.cancel(); }
             const utterThis = new SpeechSynthesisUtterance(text);
-            utterThis.lang = lang; utterThis.pitch = 1.2; utterThis.rate = 0.9; 
+            
+            // Assign the specific found voice to force correct accent
+            if (selectedVoice) {
+                utterThis.voice = selectedVoice;
+            }
+
+            utterThis.lang = lang; 
+            utterThis.pitch = 1.1; 
+            utterThis.rate = 0.9; 
             synth.speak(utterThis);
         }
 
@@ -557,7 +583,7 @@
 
             const student = getNextStudent();
             updatePlayerName(student);
-            speak(student);
+            // REMOVED: speak(student);  <- Artık isim okunmayacak
             
             clearInterval(gameState.timerInterval);
             gameState.timerInterval = setInterval(() => {
@@ -573,7 +599,7 @@
                 if(Math.random() > 0.6) spawnBonusItem();
             }, 5000);
 
-            setTimeout(() => { nextQuestion(); }, 2000); // Give time for name reading
+            setTimeout(() => { nextQuestion(); }, 500); // Delay kısaltıldı çünkü isim okunmuyor
         }
 
         function endGame() {
